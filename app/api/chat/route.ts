@@ -1,9 +1,5 @@
-import OpenAI from "openai";
 import { NextResponse } from "next/server";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { handleLocalRequest } from "./local/engine";
 
 export async function POST(request: Request) {
   try {
@@ -17,23 +13,20 @@ export async function POST(request: Request) {
       );
     }
 
-    const response = await openai.responses.create({
-      model: "gpt-5-mini",
-      input: [
-        {
-          role: "system",
-          content:
-            "You are SC AI, the intelligent assistant inside FAMAGASA'S SC. Help users with reasoning, general questions, explanations, writing, and useful everyday assistance. Keep your role focused on SC and do not present yourself as FAMAGASA'S separate full AI platform.",
-        },
-        {
-          role: "user",
-          content: message,
-        },
-      ],
-    });
+    // Local capability layer runs first.
+    const localResult = await handleLocalRequest(message);
 
+    if (localResult.handled) {
+      return NextResponse.json({
+        response: localResult.response,
+      });
+    }
+
+    // OpenAI fallback will be connected here later.
+    // It remains disabled until the API is funded.
     return NextResponse.json({
-      response: response.output_text,
+      response:
+        "I'm still learning how to handle that. Try asking me something else, and I'll do my best to help.",
     });
   } catch (error) {
     console.error("SC AI error:", error);
